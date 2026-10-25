@@ -7,7 +7,7 @@
 % https://lh3.googleusercontent.com/proxy/vp9EM7xTaAA1nGl467UtIUrCGaebEmFKQjkvtaVNBSaoGSJDCbSk7zNk8b3fkv-ZDLYGYTQMn8ESZxgCb1mIhxqTqzSwG0s
 %
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function  bRE = CQI(SNR_UE, BW)
+function  bRE = CQI(SNR_UE, ~)
 
 if      (SNR_UE >= -6.7 && SNR_UE < -4.7)
             %disp('Indice de CQI = 1')
@@ -79,9 +79,9 @@ if      (SNR_UE >= -6.7 && SNR_UE < -4.7)
             %disp('64QAM, 873/1024')
             CR = 873/1024;
             bRE = CR*6;
-    elseif (SNR_UE > 22.7)
+    elseif (SNR_UE >= 22.7)
             %disp('Indice de CQI = 15')
-            %disp('16QAM, 948/1024')
+            %disp('64QAM, 948/1024')
             CR = 948/1024;
             bRE = CR*6;
     else
@@ -89,7 +89,8 @@ if      (SNR_UE >= -6.7 && SNR_UE < -4.7)
         bRE = 0;
 end
 
-    bRE = bRE * mag2db(BW); %Eficiencia espectral segun tablas por BW de un RE
+    % bRE ya es la eficiencia espectral de un RE (bits/RE) segun la tabla de
+    % CQI. El BW no escala bRE: entra en el numero de RB por frame.
 
 end
 

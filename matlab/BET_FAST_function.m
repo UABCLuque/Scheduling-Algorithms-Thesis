@@ -9,7 +9,12 @@
 % se utiliza el valor de rizo
 %
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [atp, FT, Ef, delay, outt] = BET_FAST(Qty_UE, r, freq, Pout, BW, TTI, buffer, Pkg, fi, frames, rdg)
+function [atp, FT, Ef, delay, outt] = BET_FAST(Qty_UE, r, freq, Pout, BW, TTI, buffer, Pkg, fi, frames, rdg, plm)
+
+% Modelo de perdidas por trayectoria (ver Modelo_de_canal.m)
+if nargin < 12
+    plm = 'FSPL';
+end
 %tic
 
 %Modificar solamente cantidad de UE
@@ -50,7 +55,7 @@ end
 %disp(Pout)
 
 % Se ingresan los datos del gNB a la funcion del modelo de canal.
-pot = Modelo_de_canal(freq, d, Pout);   %calcular distancia
+pot = Modelo_de_canal(freq, d, Pout, plm);   %calcular distancia
 %disp('Potencia recibida por la gNB en dBm')
 %disp(pot)
 RXGn = 10; % Ganancia en dB del amplificador del UE en dB. No se usa
@@ -104,7 +109,7 @@ dataRate = zeros(Qty_UE,1);
 RB_UE = zeros(Qty_UE,1);
 UE_time = zeros(1,Qty_UE);
 UE_tstart = zeros(1,Qty_UE);
-UE_tend = zeros(1, Qty_UE);
+UE_tend = Inf*ones(1, Qty_UE);
 UE_tp = zeros(1, Qty_UE);
 aux = 0;
 Qty_outt = 0;
@@ -126,7 +131,7 @@ while(f == 0)
 for w = 1:RBxFrame
     I = abs(normrnd(0, FN, [1, Qty_UE]));
     %I = 0; %Debug
-    SNR = pot-(Tn+mag2db(BW)) - I;
+    SNR = pot-(Tn+10*log10(BW)) - I;
     vSNR(:,w) = SNR;
 end
 
@@ -246,8 +251,8 @@ for k = 1:RBxFrame
             for w = 1:RBxFrame
                 I = abs(normrnd(0, FN));
                 %I = 0;
-                pot2 = Modelo_de_canal(freq, d2, Pout);
-                SNR2 = pot2-(Tn+mag2db(BW)) - I; %SNR siempre debe degradar la señal
+                pot2 = Modelo_de_canal(freq, d2, Pout, plm);
+                SNR2 = pot2-(Tn+10*log10(BW)) - I; %SNR siempre debe degradar la señal
                 vSNR2(w) = SNR2;
             end
             pot(Qty_UE) = pot2;
@@ -304,6 +309,7 @@ for st = 1:Qty_UE
     
     if(find(UE_done == st))
         UE_tp(st) = sumData(st)/(UE_time(st));
+        aux_data(st) = 1;
     else
         UE_tp(st) = sumData(st)/abs(UE_tstart(st)-(numTTI*TTI));
     end
@@ -340,7 +346,11 @@ end
 
 end
 
-FT = (sum(sumData))^2 / ((Qty_UE) * sum(sumData.^2));  %Fairness de la red
+% Fairness de Jain sobre el throughput de cada UE (bits / tiempo en la celda)
+%FT = (sum(sumData))^2 / ((Qty_UE) * sum(sumData.^2));  %Fairness de la red
+t_UE = min(UE_tend, numTTI*TTI) - UE_tstart;
+tp_UE = sumData ./ t_UE;
+FT = (sum(tp_UE))^2 / ((Qty_UE) * sum(tp_UE.^2));
 
 for g = 1:Qty_UE
     if(find(UE_time(g) ~= Inf))

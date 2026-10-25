@@ -1,26 +1,30 @@
-﻿% Ejecutar algoritmo de despacho y comparar schedulers
+% Ejecutar algoritmo de despacho y comparar schedulers
 clc; 
 close all; 
 clear all;
 
 % Parametros de simulacion
-r = 1;
+r = 500;        % Radio de la celda en m (0.5 km, Capozzi 2013 [9])
 freq = 2.6e9;
-Pout = 10;
+Pout = 43;      % Potencia de transmision del eNB en dBm (Capozzi 2013 [9])
 TTI = 10e-3;
 fi = 0.1;
 frames = 5;
 buffer = 3;
 rdg = 2;
+% Modelo de perdidas por trayectoria: 'FSPL', '36942_Urban', '38901_UMa_LOS',
+% '38901_UMa_NLOS', '38901_UMi_LOS', '38901_UMi_NLOS' (ver Modelo_de_canal.m)
+plm = '38901_UMa_NLOS';
 
 % Parametros para los barridos
 Qty_UE_vec = [50, 100, 150, 200, 250];
 BW_values = [1.4e6, 3e6, 5e6];
-Pkg_values = [1e6, 5e6, 10e6];
+%Pkg_values = [1e6, 5e6, 10e6];
+Pkg_values = [1e3, 2e3, 10e3];
 
 % Valores base para el 2do barrido
 baseline_BW = BW_values(1);
-baseline_Pkg = 5e6;
+baseline_Pkg = 5e3;
 baseline_Qty = 100;
 
 algNames = {'Round Robin', 'Best CQI', 'Blind Equal Throughput', 'Proportional Fair'};
@@ -57,7 +61,7 @@ for i = 1:nQty
     Qty_UE = Qty_UE_vec(i);
     for a = 1:nAlg
         [ATP_qty(a,i), FT_qty(a,i), Ef_qty(a,i), delay_qty(a,i), outt_qty(a,i)] = ...
-            algoCalls{a}(Qty_UE, r, freq, Pout, baseline_BW, TTI, buffer, baseline_Pkg, fi, frames, rdg);
+            algoCalls{a}(Qty_UE, r, freq, Pout, baseline_BW, TTI, buffer, baseline_Pkg, fi, frames, rdg, plm);
     end
 end
 
@@ -66,7 +70,7 @@ for i = 1:nBW
     BW = BW_values(i);
     for a = 1:nAlg
         [ATP_bw(a,i), FT_bw(a,i), Ef_bw(a,i), delay_bw(a,i), outt_bw(a,i)] = ...
-            algoCalls{a}(baseline_Qty, r, freq, Pout, BW, TTI, buffer, baseline_Pkg, fi, frames, rdg);
+            algoCalls{a}(baseline_Qty, r, freq, Pout, BW, TTI, buffer, baseline_Pkg, fi, frames, rdg, plm);
     end
 end
 
@@ -75,7 +79,7 @@ for i = 1:nPkg
     Pkg = Pkg_values(i);
     for a = 1:nAlg
         [ATP_pkg(a,i), FT_pkg(a,i), Ef_pkg(a,i), delay_pkg(a,i), outt_pkg(a,i)] = ...
-            algoCalls{a}(baseline_Qty, r, freq, Pout, baseline_BW, TTI, buffer, Pkg, fi, frames, rdg);
+            algoCalls{a}(baseline_Qty, r, freq, Pout, baseline_BW, TTI, buffer, Pkg, fi, frames, rdg, plm);
     end
 end
 
@@ -141,7 +145,7 @@ for a = 1:nAlg
     for i = 1:nPkg
         x = ATP_pkg(a,i);
         y = FT_pkg(a,i);
-        text(x, y, sprintf(' %.1f', Pkg_values(i)/1e6), 'FontSize',8, 'VerticalAlignment','bottom', 'HorizontalAlignment','left');
+        text(x, y, sprintf(' %.1f', Pkg_values(i)/1e3), 'FontSize',8, 'VerticalAlignment','bottom', 'HorizontalAlignment','left');
     end
 end
 xlabel('Throughput (bps)');
@@ -247,33 +251,33 @@ legend(algNames, 'Location', 'bestoutside');
 figure('Color','w');
 subplot(2,2,1);
 for a = 1:nAlg
-    plot(Pkg_values/1e6, ATP_pkg(a,:), markers{a}, 'LineWidth', 1.5); hold on;
+    plot(Pkg_values/1e3, ATP_pkg(a,:), markers{a}, 'LineWidth', 1.5); hold on;
 end
-xlabel('Packet size (Mbits)'); ylabel('Throughput (bps)');
+xlabel('Packet size (kbits)'); ylabel('Throughput (bps)');
 title(sprintf('Throughput vs Pkg (Qty_{UE}=%d)', baseline_Qty));
 grid on;
 
 subplot(2,2,2);
 for a = 1:nAlg
-    plot(Pkg_values/1e6, FT_pkg(a,:), markers{a}, 'LineWidth', 1.5); hold on;
+    plot(Pkg_values/1e3, FT_pkg(a,:), markers{a}, 'LineWidth', 1.5); hold on;
 end
-xlabel('Packet size (Mbits)'); ylabel('Fairness');
+xlabel('Packet size (kbits)'); ylabel('Fairness');
 title(sprintf('Fairness vs Pkg (Qty_{UE}=%d)', baseline_Qty));
 grid on;
 
 subplot(2,2,3);
 for a = 1:nAlg
-    plot(Pkg_values/1e6, delay_pkg(a,:), markers{a}, 'LineWidth', 1.5); hold on;
+    plot(Pkg_values/1e3, delay_pkg(a,:), markers{a}, 'LineWidth', 1.5); hold on;
 end
-xlabel('Packet size (Mbits)'); ylabel('Delay (s)');
+xlabel('Packet size (kbits)'); ylabel('Delay (s)');
 title(sprintf('Delay vs Pkg (Qty_{UE}=%d)', baseline_Qty));
 grid on;
 
 subplot(2,2,4);
 for a = 1:nAlg
-    plot(Pkg_values/1e6, outt_pkg(a,:), markers{a}, 'LineWidth', 1.5); hold on;
+    plot(Pkg_values/1e3, outt_pkg(a,:), markers{a}, 'LineWidth', 1.5); hold on;
 end
-xlabel('Packet size (Mbits)'); ylabel('Outage (%)');
+xlabel('Packet size (kbits)'); ylabel('Outage (%)');
 title(sprintf('Outage vs Pkg (Qty_{UE}=%d)', baseline_Qty));
 grid on;
 legend(algNames, 'Location', 'bestoutside');
