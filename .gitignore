@@ -14,3 +14,6 @@ references/papers/*.pdf
 
 # Word temp files
 ~$*.docx
+
+# MATLAB editor autosave files
+*.asv
