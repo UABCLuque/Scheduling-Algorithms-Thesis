@@ -2,7 +2,7 @@
 % CQI
 %
 % Funcion
-% Según Rel.12 y posterior
+% Según Rel.12 y posterior. Tabla 7.2.3-1 en 3GPP TS 36.213 verison 14.2.0
 %
 % https://lh3.googleusercontent.com/proxy/vp9EM7xTaAA1nGl467UtIUrCGaebEmFKQjkvtaVNBSaoGSJDCbSk7zNk8b3fkv-ZDLYGYTQMn8ESZxgCb1mIhxqTqzSwG0s
 %

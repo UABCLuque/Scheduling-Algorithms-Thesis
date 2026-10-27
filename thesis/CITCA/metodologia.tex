@@ -1,0 +1,238 @@
+% ==========================================================================
+% Metodologia, implementación y resultados
+% ==========================================================================
+
+\section{Metodología}\label{sec:metodologia}
+
+Para evaluar el desempeño de las estrategias de despacho se desarrolló un simulador
+en MATLAB que replica de forma conceptual el proceso de
+despacho en enlace descendente de una celda celular basada en 4G/5G.
+El simulador implementa cuatro estrategias de despacho: Round Robin (RR), 
+Best CQI (BCQI), Blind Equal Throughput (BET) y Proportional Fair (PF). 
+Las cuatro comparten el mismo modelo de red, canal y tráfico. La diferencia
+entre ellas es la forma con la que se decide el orden y prioridad en el que 
+se les asignan bloques de recurso (RB) a los equipo de usuario (UE) conectados
+a la red. En esta sección se describe el modelo de asignación de recursos
+y la implementación de cada despachador.
+
+La estructura de recursos del simulador se basa en LTE-A, la cual
+comparte con 5G su numerología base ($\mu = 0$) el espaciado entre
+subportadoras de 15~kHz, los RB de 12 subportadoras y la trama de 10~ms
+\citep{lin2019}.
+
+\subsection{Modelo de red y de canal}\label{subsec:modelo}
+
+Se considera una celda con una radiobase (gNB) ubicada en el centro y $N$
+UE distribuidos dentro de un radio $r$. Al inicio de cada simulación, los
+UE se distribuyen a lo largo de la radiobase y el borde de la celda. Se
+mantiene la misma distancia entre UEs.
+\begin{equation}
+  d_i = r\,\frac{i-1}{N-1}, \qquad i = 1, \dots, N,
+  \label{eq:distancias}
+\end{equation}
+
+La potencia recibida por el UE $i$ se obtiene como
+$P_{rx,i} = P_{tx} - PL(d_i)$, donde $P_{tx}$ es la potencia de
+transmisión de la radiobase en dBm y $PL(d_i)$ son las pérdidas por
+propagación del modelo Urban Macro sin línea de vista (UMa NLOS)
+\textbf{[3GPP TR~38.901]}.
+
+La relación señal a ruido más interferencia del UE $i$ en el RB $k$ se
+calcula en dB como
+\begin{equation}
+  \gamma_{i,k} = P_{rx,i} - \left(-174 + 10\log_{10}B\right) - I_{i,k},
+  \label{eq:sinr}
+\end{equation}
+donde $B$ es el ancho de banda del canal en Hz y $I_{i,k}$ es una variable
+aleatoria en dB que representa la degradación de la señal por
+interferencia. Este valor se obtiene como el absoluto de una
+variable aleatoria normal con media cero y desviación estándar
+$\sigma_I = N f_I$, donde $f_I$ es un factor de interferencia por usuario.
+De esta forma, la interferencia crece con el número de UE en la celda. El
+valor de $\gamma_{i,k}$ se genera de nuevo para cada UE, en cada RB y en
+cada trama.
+
+Para la adaptación del enlace, $\gamma_{i,k}$ se compara con un conjunto
+de umbrales para obtener el índice de CQI (de 1 a 15) de la tabla de 4
+bits de 3GPP TS 36.213 \textbf{[CITA REQUERIDA]}. Con
+$\gamma_{i,k}$ se obtiene el CQI, que determina los bits que transporta el RB.
+
+El despacho se realiza por trama (10 ms). El número de RB disponibles en
+una trama es $K = 20\,N_{RB}$, donde $N_{RB} = 5B$ (con $B$ en MHz) es el
+número de RB por ranura de 0.5~ms y 20 es el número de ranuras en una
+trama. Los RB de la trama se asignan uno a la vez, y cada RB se asigna a un
+solo UE.
+
+En cuanto al tráfico, cada UE tiene un paquete por transmitir cuyo tamaño
+$S_i$ se obtiene de una distribución normal con media $\bar{S}$ y
+desviación estándar $0.2\bar{S}$. Cuando un UE termina de recibir su
+paquete, sale de la celda y en su lugar llega un nuevo UE a una distancia
+aleatoria con distribución uniforme entre 0 y $r$, con un nuevo tamaño de
+paquete. De esta forma, el número de UE activos se mantiene constante e
+igual a $N$, mientras que el número total de UE atendidos durante la
+simulación aumenta. La simulación termina después de $F$ tramas.
+
+\subsection{Implementación}\label{subsec:implementacion}
+
+La Fig.~\ref{fig:flujo} muestra el proceso de despacho de los
+cuatro despachadores presentados. Al inicio de cada trama se calcula
+$\gamma_{i,k}$ para todos los UE y todos los RB de la trama. Después, para
+cada RB $k$, el despachador calcula la métrica $m_{i,k}$ de cada UE activo
+y asigna el RB al UE con la métrica más alta,
+\begin{equation}
+  i^{*} = \arg\max_{i \in \mathcal{A}} \; m_{i,k},
+  \label{eq:argmax}
+\end{equation}
+donde $\mathcal{A}$ es el conjunto de UE que aún tienen datos por recibir.
+Al terminar la trama se registran los datos entregados a cada UE
+y el proceso se repite hasta completar las $F$ tramas. 
+Después de completar todas las tramas, se calculan las métricas de
+desempeño de los algoritmos de despacho.
+
+\begin{figure}[tb]
+\centering
+\begin{tikzpicture}[
+    font=\scriptsize,
+    node distance=3.2mm,
+    proc/.style={rectangle, draw, align=center, text width=40mm,
+                 minimum height=5mm, inner sep=1.5pt},
+    term/.style={rectangle, draw, rounded corners=2.5mm, align=center,
+                 text width=28mm, minimum height=5mm},
+    dec/.style={diamond, draw, aspect=2.6, align=center, inner sep=0.5pt},
+    flecha/.style={-{Latex[length=1.6mm]}}
+  ]
+  \node[term] (ini) {Inicio};
+  \node[proc, below=of ini] (par)
+    {Definir parámetros y ubicar $N$ UE con (\ref{eq:distancias})};
+  \node[proc, below=of par] (snr)
+    {Nueva trama: calcular $\gamma_{i,k}$ para todo UE y RB con (\ref{eq:sinr})};
+  \node[proc, below=of snr] (met)
+    {Calcular $m_{i,k}$ de cada UE activo según el despachador};
+  \node[proc, below=of met] (asig)
+    {Asignar el RB $k$ al UE $i^{*}$ con (\ref{eq:argmax})};
+  \node[proc, below=of asig] (bits)
+    {Obtener CQI y sumar los bits del RB a los datos del UE $i^{*}$};
+  \node[dec, below=of bits] (comp) {¿Paquete\\completo?};
+  \node[proc, right=5mm of comp, text width=14mm] (nuevo)
+    {Retirar UE y agregar uno nuevo};
+  \node[dec, below=5mm of comp] (finrb) {¿Último RB\\de la trama?};
+  \node[dec, below=of finrb] (fintr) {¿Trama $F$?};
+  \node[proc, below=of fintr] (metr) {Calcular métricas de desempeño};
+  \node[term, below=of metr] (fin) {Fin};
+
+  % Coordenadas de los lazos, a la izquierda de los bloques
+  \coordinate (xk) at ($(met.west)+(-3mm,0)$);
+  \coordinate (xf) at ($(met.west)+(-6mm,0)$);
+  \coordinate (union) at ($(comp.south)!0.5!(finrb.north)$);
+
+  \draw[flecha] (ini) -- (par);
+  \draw[flecha] (par) -- (snr);
+  \draw[flecha] (snr) -- (met);
+  \draw[flecha] (met) -- (asig);
+  \draw[flecha] (asig) -- (bits);
+  \draw[flecha] (bits) -- (comp);
+  \draw[flecha] (comp) -- node[above] {Sí} (nuevo);
+  \draw (nuevo.south) |- (union);
+  \draw[flecha] (comp) -- node[left, pos=0.3] {No} (finrb);
+  \draw[flecha] (finrb.west) -- node[above] {No} (finrb.west -| xk)
+     -- node[midway, sloped, above, inner sep=1pt] {$k \leftarrow k+1$} (xk)
+     -- (met.west);
+  \draw[flecha] (finrb) -- node[right] {Sí} (fintr);
+  \draw[flecha] (fintr.west) -- node[above] {No} (fintr.west -| xf)
+     -- (snr.west -| xf) -- (snr.west);
+  \draw[flecha] (fintr) -- node[right] {Sí} (metr);
+  \draw[flecha] (metr) -- (fin);
+\end{tikzpicture}
+\caption{Diagrama de flujo del proceso de despacho de los
+  despachadores RR, BCQI, BET y PF.}
+\label{fig:flujo}
+\end{figure}
+
+\subsubsection{Round Robin (RR).}
+RR asigna los RB a los UE por turnos, en un orden fijo y sin
+considerar las condiciones del canal ni los requerimientos del
+usuario \citep{capozzi2013,fitriasari2021}. Su métrica se puede expresar como
+\begin{equation}
+  m^{RR}_{i,k} = t - T_i,
+  \label{eq:rr}
+\end{equation}
+donde $t$ es el tiempo actual y $T_i$ es la última vez que el UE $i$ fue
+atendido \citep{capozzi2013}, de manera que se prioriza al UE que lleva
+más tiempo sin que se le asignen recursos. Con esta estrategia todos los UE
+reciben la misma cantidad de RB.
+
+\subsubsection{Best CQI (BCQI).}
+BCQI asigna cada RB al UE que puede alcanzar la mayor tasa de datos en ese RB,
+con el objetivo de maximizar el throughput del sistema sin importar la equidad
+\citep{capozzi2013,haque2023}. En la implementación, la métrica es el
+SINR del UE en el RB,
+\begin{equation}
+  m^{BCQI}_{i,k} = \gamma_{i,k}.
+  \label{eq:bcqi}
+\end{equation}
+Debido a que el CQI y, por lo tanto, la cantidad de bits que puede transportar
+el RB no disminuyen al aumentar $\gamma_{i,k}$, elegir el UE con mayor SINR 
+equivale a elegir el UE que transporta más bits en el RB. Los UE cercanos 
+a la radiobase son atendidos con mayor frecuencia, mientras que los UE 
+en el borde de la celda pueden no ser atendidos hasta que mejoren sus 
+condiciones de canal.
+
+\subsubsection{Blind Equal Throughput (BET).}
+BET busca la equidad en términos de throughput, para lo cual prioriza al
+UE que ha recibido menos datos, sin considerar las condiciones del
+canal \citep{capozzi2013}. La métrica de BET es
+\begin{equation}
+  m^{BET}_{i,k} = \frac{1}{\bar{R}_i(k-1)},
+  \label{eq:bet}
+\end{equation}
+donde $\bar{R}_i$ es el promedio de datos recibidos del UE $i$
+\citep{capozzi2013}. En la implementación, $\bar{R}_i$ se actualiza en cada
+RB. Los UE que todavía no han sido atendidos tienen $\bar{R}_i = 0$ y,
+por lo tanto, la métrica más alta, por lo que se atienden primero.
+
+\subsubsection{Proportional Fair (PF).}
+PF busca un punto medio entre BCQI y BET: favorece a los UE con buenas
+condiciones de canal, pero tomando en cuenta el throughput que cada UE ha
+recibido \citep{capozzi2013,fitriasari2021}. Su métrica es
+\begin{equation}
+  m^{PF}_{i,k} = \frac{r_{i,k}}{\bar{R}_i(k-1)},
+  \label{eq:pf}
+\end{equation}
+donde $r_{i,k}$ es la tasa que alcanzaría el UE $i$ en el RB $k$ y
+$\bar{R}_i$ es su throughput promedio \citep{capozzi2013}.
+Un UE con buenas condiciones de canal tiene un numerador
+alto, pero su métrica disminuye conforme aumenta su throughput, lo que
+permite que los UE con peores condiciones sean atendidos cuando su
+throughput promedio es bajo.
+
+\subsection{Métricas de desempeño}\label{subsec:metricas}
+
+Al final de cada simulación se calculan las siguientes métricas:
+
+\begin{itemize}
+  \item Throughput de la celda: total de bits entregados a todos los UE
+    entre el tiempo simulado.
+  \item Eficiencia espectral: throughput de la celda dividido entre el
+    ancho de banda del canal, en bits/s/Hz. Indica qué tan bien se
+    aprovecha el espectro disponible \citep{mamane2022}.
+  \item Equidad: índice de Jain sobre el throughput de cada UE,
+    \begin{equation}
+      J = \frac{\left(\sum_{i} x_i\right)^2}{n \sum_{i} x_i^2},
+      \label{eq:jain}
+    \end{equation}
+    donde $x_i$ es el throughput del UE $i$, es decir, la cantidad de
+    datos que recibió dividida entre el tiempo que permaneció en la celda,
+    y $n$ es el número total de UE atendidos durante la simulación
+    \citep{shi2014}.
+  \item Retardo promedio: tiempo promedio entre la llegada de un UE y la
+    entrega completa de su paquete, calculado sobre los UE que
+    completaron su paquete, con una resolución de una trama.
+  \item Probabilidad de interrupción (\emph{outage}): porcentaje de UE con
+    datos pendientes que no recibieron ningún bit en una trama, promediado
+    sobre todas las tramas.
+\end{itemize}
+
+% --------------------------------------------------------------------------
+% Pendiente: Subsección de parámetros de simulación (tabla con r, P_tx,
+% frecuencia, B, N, \bar{S}, f_I, F) y escenarios evaluados.
+% --------------------------------------------------------------------------

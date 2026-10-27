@@ -17,3 +17,6 @@ references/papers/*.pdf
 
 # MATLAB editor autosave files
 *.asv
+
+# Old CITCA drafts (kept locally)
+thesis/CITCA/Old/
