@@ -19,7 +19,7 @@
 %
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function [atp, FT, Ef, delay, outt] = RR(Qty_UE, r, freq, Pout, BW, TTI, buffer, Pkg, fi, frames, rdg, plm)
+function [atp, FT, Ef, delay, outt, info] = RR(Qty_UE, r, freq, Pout, BW, TTI, buffer, Pkg, fi, frames, rdg, plm)
 
 % Modelo de perdidas por trayectoria (ver Modelo_de_canal.m)
 if nargin < 12
@@ -96,7 +96,9 @@ elseif(buffer == 3)
     var_lg = frames + 1;
     %Ps = Pkg*rand(1,Qty_UE);
     %Ps = Pkg * ones(1, Qty_UE);
-    Ps = normrnd(Pkg, Pkg*fp, 1, Qty_UE);
+    % normrnd requiere Statistics Toolbox (no disponible); mu + sigma*randn es equivalente
+    %Ps = normrnd(Pkg, Pkg*fp, 1, Qty_UE);
+    Ps = Pkg + Pkg*fp*randn(1, Qty_UE);
 else
     var_lg = frames + 1;
     Ps = Inf(1,Qty_UE);
@@ -145,7 +147,9 @@ while(f == 0)
     dataxTTI = zeros(1,Qty_UE);
 
 for w = 1:RBxFrame
-    I = abs(normrnd(0, FN, [1, Qty_UE]));
+    % normrnd requiere Statistics Toolbox (no disponible); mu + sigma*randn es equivalente
+    %I = abs(normrnd(0, FN, [1, Qty_UE]));
+    I = abs(FN*randn(1, Qty_UE));
     %I = 0; %Debug
     SNR = pot-(Tn+10*log10(BW)) - I; %SNR siempre debe degradar la señal
     vSNR(:,w) = SNR;
@@ -190,6 +194,7 @@ for k = 1:RBxFrame
     contRB = contRB+1;
 
     data(active_UE, k) = bRE*84; %El 84? 84 RE en un RB de LTE
+    FBits(numTTI, k) = data(active_UE(1), k); % Bits del RB asignado
     %disp(data)
 
     sumData(active_UE) = sumData(active_UE) + data(active_UE,k);
@@ -208,11 +213,14 @@ for k = 1:RBxFrame
         if(buffer == 2 || buffer == 3)
             Qty_UE = Qty_UE + 1;
             d2 = r*rand;
+            d(Qty_UE) = d2; % Distancia del UE que llega
             %d2 = d(auxd);
             %auxd = auxd+1;
             %d(Qty_UE) = d2;
             for w = 1:RBxFrame
-                I = abs(normrnd(0, FN));
+                % normrnd requiere Statistics Toolbox (no disponible); mu + sigma*randn es equivalente
+                %I = abs(normrnd(0, FN));
+                I = abs(FN*randn);
                 %I = 0;
                 pot2 = Modelo_de_canal(freq, d2, Pout, plm);
                 SNR2 = pot2-(Tn+10*log10(BW)) - I; %SNR siempre debe degradar la señal
@@ -233,7 +241,9 @@ for k = 1:RBxFrame
             if(buffer == 3)
                 %Ps(Qty_UE) = Pkg*rand;
                 %Ps(Qty_UE) = Pkg;
-                Ps(Qty_UE) = normrnd(Pkg, Pkg*fp);
+                % normrnd requiere Statistics Toolbox (no disponible); mu + sigma*randn es equivalente
+                %Ps(Qty_UE) = normrnd(Pkg, Pkg*fp);
+                Ps(Qty_UE) = Pkg + Pkg*fp*randn;
             else
                 Ps = Pkg * ones(1, Qty_UE);
             end
@@ -353,6 +363,16 @@ outt = mean(outt_TTI);
 % disp(Ef)
 % 
  delay = mean(delay);
+
+% Datos por UE para caracterizar el despachador (salida opcional)
+info.d = d;                 % Distancia de cada UE a la gNB (m)
+info.sumData = sumData;     % Bits recibidos por UE
+info.RB_UE = RB_UE';        % RB asignados por UE
+info.tstart = UE_tstart;    % Llegada de cada UE (s)
+info.tend = UE_tend;        % Fin del paquete (Inf si no termino)
+info.tp_UE = tp_UE;         % Throughput por UE (bps)
+info.alloc = FRR;          % UE asignado a cada RB (trama x RB)
+info.bits = FBits;          % Bits del RB asignado (trama x RB)
 % disp('Delay promedio (s)')
 % disp(delay)
 % 

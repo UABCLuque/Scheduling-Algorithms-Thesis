@@ -59,7 +59,9 @@ function L = PL_FSPL(freq, dist)
 %   d = distancia
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-lambda = physconst('LightSpeed')/freq;
+% physconst requiere Phased Array Toolbox (no disponible); se usa el valor de c en m/s
+%lambda = physconst('LightSpeed')/freq;
+lambda = 299792458/freq;
 %L = 10 * log10(lambda.^2./(((4*pi).^2)*(dist.^2)));
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -83,7 +85,9 @@ lambda = physconst('LightSpeed')/freq;
 %P = (Pt*Gt*Gr*lambda^2) / ( (4*pi^2)*(d^2)*ls )
 
 % Usando la función modelo de espacio libre de MATLAB
-L = fspl(dist, lambda);
+%L = fspl(dist, lambda);
+% fspl requiere Phased Array Toolbox (no disponible); se usa su fórmula, que también limita a 0 dB
+L = max(20*log10(4*pi*dist/lambda), 0);
 end
 
 
@@ -132,7 +136,9 @@ hUT = 1.5;
 hE = 1;
 dmin = 10;  % Limite inferior de validez del modelo
 
-c = physconst('LightSpeed');
+% physconst requiere Phased Array Toolbox (no disponible); se usa el valor de c en m/s
+%c = physconst('LightSpeed');
+c = 299792458;
 fc = freq/1e9;
 d2D = max(dist, dmin);
 d3D = sqrt(d2D.^2 + (hBS - hUT)^2);
@@ -173,7 +179,9 @@ hUT = 1.5;
 hE = 1;
 dmin = 10;  % Limite inferior de validez del modelo
 
-c = physconst('LightSpeed');
+% physconst requiere Phased Array Toolbox (no disponible); se usa el valor de c en m/s
+%c = physconst('LightSpeed');
+c = 299792458;
 fc = freq/1e9;
 d2D = max(dist, dmin);
 d3D = sqrt(d2D.^2 + (hBS - hUT)^2);
