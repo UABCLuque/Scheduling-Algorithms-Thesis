@@ -17,6 +17,16 @@ En 1 s hay 100 tramas × 500 RB = **50 000 RB**. El simulador guarda qué UE rec
 
 El CQI de cada RB se obtiene de los bits que transportó (`info.bits`): bits/RB = 84 × eficiencia de la tabla de CQI de 4 bits (TS 36.213), y se busca la fila correspondiente.
 
+### Por qué varía el CQI de un mismo UE
+
+Las columnas `CQI_min`, `CQI_max` y `CQI_promedio` resumen el CQI de los ~1250 RB que recibió cada UE. El CQI cambia de un RB a otro por el término de interferencia de la ec. (2): I = |N(0, 4 dB)| se sortea de nuevo para cada UE, cada RB y cada trama, y es la única variación del canal entre RB (no hay desvanecimiento rápido).
+
+- `CQI_max` es el CQI casi sin interferencia y depende solo de la distancia (pérdidas por propagación): baja de 15 cerca de la gNB a 9 en el borde.
+- Los UE cercanos tienen tanto margen sobre el umbral de CQI 15 que ninguna interferencia los baja de ahí (con RR, mínimo = máximo = 15 hasta 205 m).
+- Los UE lejanos tienen menos margen, y algunos de sus RB caen a CQI menores. Por ejemplo, con RR a 487 m el CQI va de 8 a 15, con promedio 13.07.
+- RR toma los RB que le tocan con la interferencia que traigan, por eso su rango es amplio. PF prefiere los RB con menor interferencia de cada UE y casi siempre obtiene el CQI sin interferencia (promedio 14.99 a 487 m contra 13.07 de RR). De ahí sale la ventaja de throughput de PF sobre RR.
+- BCQI solo atiende a los dos UE junto a la gNB, y todos sus RB están en CQI 15.
+
 ## Cada afirmación del texto y su fuente
 
 | Afirmación en el paper | Valor en los datos | Dónde verlo |
