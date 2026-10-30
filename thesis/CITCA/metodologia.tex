@@ -73,13 +73,16 @@ La simulación termina después de $F$ tramas.
 La Fig.~\ref{fig:flujo} muestra el proceso de despacho de los
 cuatro despachadores presentados. Al inicio de cada trama se calcula
 $\gamma_{i,k}$ para todos los UE y todos los RB de la trama. Después, para
-cada RB $k$, el despachador calcula la métrica $m_{i,k}$ de cada UE activo
+cada RB $k$, el despachador calcula la métrica $m_{i,k}$ de cada UE
 y asigna el RB al UE con la métrica más alta,
 \begin{equation}
   i^{*} = \arg\max_{i \in \mathcal{A}} \; m_{i,k},
   \label{eq:argmax}
 \end{equation}
-donde $\mathcal{A}$ es el conjunto de UE que aún tienen datos por recibir.
+donde $\mathcal{A}$ es el conjunto de los $N$ UE, que se mantiene constante
+durante toda la simulación. Después de cada asignación se actualiza el
+throughput promedio $\bar{R}_i$ de cada UE (BET y PF) o el instante $T_i$ en
+que fue atendido (RR), que intervienen en la métrica del siguiente RB.
 Al terminar la trama se registran los datos entregados a cada UE
 y el proceso se repite hasta completar las $F$ tramas. 
 Después de completar todas las tramas, se calculan las métricas de
@@ -103,12 +106,14 @@ desempeño de los algoritmos de despacho.
   \node[proc, below=of par] (snr)
     {Nueva trama: calcular $\gamma_{i,k}$ para todo UE y RB con (\ref{eq:sinr})};
   \node[proc, below=of snr] (met)
-    {Calcular $m_{i,k}$ de cada UE activo según el despachador};
+    {Calcular $m_{i,k}$ de cada UE según el despachador};
   \node[proc, below=of met] (asig)
     {Asignar el RB $k$ al UE $i^{*}$ con (\ref{eq:argmax})};
   \node[proc, below=of asig] (bits)
     {Obtener CQI y sumar los bits del RB a los datos del UE $i^{*}$};
-  \node[dec, below=of bits] (finrb) {¿Último RB\\de la trama?};
+  \node[proc, below=of bits] (act)
+    {Actualizar $\bar{R}_i$ de cada UE (BET, PF) o $T_i$ (RR)};
+  \node[dec, below=of act] (finrb) {¿Último RB\\de la trama?};
   \node[dec, below=of finrb] (fintr) {¿Trama $F$?};
   \node[proc, below=of fintr] (metr) {Calcular métricas de desempeño};
   \node[term, below=of metr] (fin) {Fin};
@@ -122,7 +127,8 @@ desempeño de los algoritmos de despacho.
   \draw[flecha] (snr) -- (met);
   \draw[flecha] (met) -- (asig);
   \draw[flecha] (asig) -- (bits);
-  \draw[flecha] (bits) -- (finrb);
+  \draw[flecha] (bits) -- (act);
+  \draw[flecha] (act) -- (finrb);
   \draw[flecha] (finrb.west) -- node[above] {No} (finrb.west -| xk)
      -- node[midway, sloped, above, inner sep=1pt] {$k \leftarrow k+1$} (xk)
      -- (met.west);
