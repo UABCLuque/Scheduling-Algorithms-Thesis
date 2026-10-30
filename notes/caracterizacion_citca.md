@@ -21,7 +21,7 @@ Una sola gráfica con el throughput promedio de cada UE durante 1 s, en eje loga
 
 - **RR:** cada UE recibe exactamente 1/40 = 2.5 % de los RB, sin importar su canal. Por eso la curva sigue directamente la calidad del canal. Es plana en ~583 kbps hasta ~310 m (13 UE en CQI 15) y luego cae hasta 174 kbps en el borde (1000 m). Es la referencia: misma porción de recursos y throughput dictado por la distancia.
 - **BCQI:** asigna cada RB al UE con mejor SNR, así que solo atiende a los dos UE más cercanos. El UE a 0 m recibe 93.8 % de los RB (21.9 Mbps) y el UE a 25.6 m el 6.2 % restante (~1.4 Mbps). Los otros 38 UE reciben 0 bits y no aparecen en la gráfica, porque el eje logarítmico no dibuja ceros. El texto debe decirlo para que no parezca un error.
-- **BET:** iguala el throughput. Todos los UE quedan entre 363 y 369 kbps, una línea horizontal. Para lograrlo da más RB a quien tiene peor canal: del 1.6 % para el UE más cercano al 5.3 % para el del borde (~3.4×). El precio es que los UE cercanos quedan por debajo de lo que obtienen con RR o PF.
+- **BET:** iguala el throughput. Todos los UE quedan entre 366.3 y 366.8 kbps, una línea horizontal. Para lograrlo da más RB a quien tiene peor canal: del 1.57 % para el UE más cercano al 5.24 % para el del borde (~3.3×). El precio es que los UE cercanos quedan por debajo de lo que obtienen con RR o PF.
 - **PF:** reparte los RB casi igual que RR (entre 2.42 % y 2.50 % por UE), pero a cada UE le asigna sus RB con menos interferencia. Hasta ~310 m coincide con RR, porque ahí todos los RB están en CQI 15 y no hay nada que elegir. A partir de ahí supera a RR: mantiene 583 kbps hasta ~490 m (20 UE) y en el borde obtiene 253 kbps contra 174 kbps de RR (~1.45×). La curva baja en escalones porque el CQI es discreto.
 - Mensaje de la figura: RR y PF dan los mismos recursos pero PF los aprovecha mejor. BET sacrifica throughput de los UE cercanos para igualar, y BCQI maximiza el total dejando sin servicio a casi todos.
 
@@ -67,7 +67,7 @@ Ambos efectos vienen de cómo se calcula la SNR por RB: SNR sin interferencia (d
 
 ### Fig. 3: `fig_retardo_distancia`, retardo y UE en espera contra la distancia (escenario B)
 
-Dos paneles, con los UE agrupados en intervalos de 200 m (centros en 100, 300, …, 900 m). Durante 1 s llegaron 312 UE en RR, 395 en BCQI, 327 en BET y 376 en PF (incluidos los 40 iniciales). Más llegadas significa que se terminaron más paquetes.
+Dos paneles, con los UE agrupados en intervalos de 200 m (centros en 100, 300, …, 900 m). Durante 1 s llegaron 312 UE en RR, 395 en BCQI, 311 en BET y 376 en PF (incluidos los 40 iniciales). Más llegadas significa que se terminaron más paquetes.
 
 - **(a) Retardo promedio** de los UE que terminaron su paquete, medido desde su llegada hasta que lo terminan (resolución de 10 ms).
 
@@ -75,10 +75,10 @@ Dos paneles, con los UE agrupados en intervalos de 200 m (centros en 100, 300, �
   |---|---|---|---|---|---|
   | RR (ms) | 95 | 95 | 113 | 164 | 251 |
   | BCQI (ms) | 13 | 16 | 26 | 67 | 306 |
-  | BET (ms) | 134 | 133 | 137 | 140 | 144 |
+  | BET (ms) | 139 | 142 | 145 | 151 | 161 |
   | PF (ms) | 91 | 97 | 100 | 136 | 184 |
 
-  - BET es casi plano (~133–144 ms): al igualar el throughput, un paquete tarda lo mismo sin importar la distancia.
+  - BET es la curva más plana (~139–161 ms): al igualar el throughput, un paquete tarda casi lo mismo sin importar la distancia. La ligera subida hacia el borde contrasta con RR (95–251 ms) y PF (91–184 ms).
   - RR y PF crecen con la distancia porque el throughput baja. PF es menor o igual que RR en todos los intervalos, y la diferencia crece hacia el borde (184 contra 251 ms).
   - BCQI tiene el menor retardo cerca de la gNB (~13 ms) y el mayor en el borde (306 ms). Ojo: en el borde solo 37 de 75 UE terminaron, así que ese promedio solo cuenta a los que sí lograron terminar. Por eso se agrega el panel (b).
 - **(b) UE en espera al final**: cuántos de los 40 UE activos al terminar la corrida siguen sin terminar su paquete, por intervalo de distancia (barras agrupadas por despachador).
@@ -87,7 +87,7 @@ Dos paneles, con los UE agrupados en intervalos de 200 m (centros en 100, 300, �
   |---|---|---|---|---|---|
   | RR | 3 | 5 | 9 | 6 | 17 |
   | BCQI | 0 | 0 | 1 | 1 | 38 |
-  | BET | 9 | 7 | 8 | 5 | 11 |
+  | BET | 7 | 9 | 10 | 5 | 9 |
   | PF | 6 | 2 | 7 | 9 | 16 |
 
   - En BCQI, 38 de los 40 están en el borde: los UE cercanos terminan rápido y se reemplazan, y los lejanos se van acumulando sin servicio. Es la inanición (starvation) de BCQI vista desde el tráfico por paquetes.
@@ -106,6 +106,24 @@ Misma forma que la Fig. 1, pero el eje vertical es el throughput de cada UE divi
 - **BCQI (J = 0.03):** el UE a 0 m tiene 37.5 veces el throughput medio y el de 25.6 m tiene 2.4 veces. Los 38 restantes valen 0 y, como en la Fig. 1, no se dibujan en el eje logarítmico.
 - Mensaje de la figura: el orden de equidad BET > PF > RR > BCQI y de dónde sale. Con RR y PF, los UE cercanos quedan arriba de la media y los lejanos abajo. BET los pone a todos en la media. BCQI concentra todo en uno o dos UE.
 - La escala la fija BCQI (hasta 37.5) y la parte superior queda libre para la leyenda, así que RR, PF y BET se ven en una franja angosta (0.4–1.4). Si en el artículo se quiere más detalle en esa franja, otra opción es un eje lineal de 0 a 1.5 con BCQI fuera de escala, indicando su valor en el pie de figura.
+
+### Fig. 5: `fig_equidad_tiempo`, índice de Jain en cada trama (escenario A)
+
+Una sola gráfica con el índice de Jain calculado en cada trama de 10 ms, con x_i = bits que recibe el UE i en esa trama (no acumulados), contra el tiempo (ms). Cada despachador es una curva. Los valores están en `jainTrama` (despachador × trama) de `caracterizacion.mat`.
+
+| | mín | media | máx |
+|---|---|---|---|
+| RR | 0.864 | 0.890 | 0.916 |
+| BCQI | 0.027 | 0.028 | 0.030 |
+| BET | 0.996 | 0.999 | 1.000 |
+| PF | 0.923 | 0.936 | 0.946 |
+
+- Las cuatro curvas son estables desde la primera trama y quedan en el mismo nivel que su J global de la Fig. 4, en el orden BET > PF > RR > BCQI. Es decir, la equidad de cada despachador no es solo un promedio de 1 s: se cumple en cada trama.
+- **BET** queda en ~1 en todas las tramas: iguala el throughput también dentro de cada trama de 10 ms, no solo al final.
+- **PF** se mantiene en ~0.94, arriba de RR, con muy poca variación.
+- **RR** oscila en zigzag (0.86–0.92) porque 500 RB / 40 UE = 12.5 RB por UE, así que en cada trama unos UE reciben 12 y otros 13.
+- **BCQI** queda en ~0.03 en todas las tramas: los mismos dos UE reciben todo, trama tras trama.
+- Antes de corregir BET (ver "Cambios en el código"), su índice por trama bajaba de 0.99 a ~0.65 con oscilaciones cada vez mayores, aunque su J global era 1.00.
 
 `metricas.csv` tiene las métricas globales de ambos escenarios, y `caracterizacion.mat` los parámetros y los datos por UE. Las demás métricas no aparecen en ninguna figura (solo el J del escenario A, en la leyenda de la Fig. 4): aun para un solo escenario se parecen a la comparación que se reserva para el otro congreso.
 
@@ -131,6 +149,10 @@ Misma forma que la Fig. 1, pero el eje vertical es el throughput de cada UE divi
   - el mapa de asignación RB→UE y los bits que lleva cada RB asignado (trama × RB).
 - La distancia de los UE que llegan durante la corrida ahora se guarda en `d`.
 - Las primeras 5 salidas no cambian, así que `Scheduling.m` funciona igual que antes.
+- **Corrección de BET (`BET_FAST_function.m`).** `ri` era `BET_metric`, los bits *acumulados* de cada UE. Con `a = 0.99999`, `Ri` era un promedio muy lento de un total acumulado, así que la métrica integraba dos veces y el reparto llegaba en ráfagas cada vez mayores. Ahora `ri` son los bits del último RB asignado (tasa instantánea), como en la definición usual de BET. Efecto con `rng(1)`:
+  - Escenario A: casi sin cambios (throughput 14.64 → 14.66 Mbps, J 0.99999 → 1.00000). Las Figs. 1, 2 y 4 se ven igual. Solo cambia la Fig. 5.
+  - Escenario B: retardo medio 137 → 148 ms, outage 0.20 → 0.10 %, llegadas 327 → 311. Parte de la diferencia puede ser solo otra realización aleatoria, porque con otro reparto los números aleatorios se consumen en otro orden.
+  - También cambian los resultados de BET en `Scheduling.m` (README §6 y §7.4).
 - La Fig. 1 antes tenía un panel extra con el porcentaje de RB por UE. Se quitó, y el archivo se renombró de `fig_rb_tp_distancia` a `fig_tp_distancia`.
 
 ## Advertencias

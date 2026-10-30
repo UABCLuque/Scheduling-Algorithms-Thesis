@@ -3,7 +3,8 @@
 % Muestra el funcionamiento de cada despachador en un solo escenario, sin
 % barridos (los barridos de Scheduling.m se reservan para otro trabajo).
 %   Escenario A: buffer lleno. Throughput y equidad por UE segun la
-%                distancia, y datos acumulados por UE en el tiempo.
+%                distancia, datos acumulados por UE en el tiempo y
+%                equidad de Jain en cada trama.
 %   Escenario B: trafico por paquetes (buffer dinamico, como en la
 %                metodologia). Retardo segun la distancia y ubicacion de
 %                los UE que siguen en espera al final.
@@ -102,6 +103,32 @@ estiloPaper(fig4);
 exportar(fig4, outDir, 'fig_equidad_distancia');
 
 % -------------------------------------------------------------------------
+% Fig. 5: equidad de Jain en cada trama (A)
+% -------------------------------------------------------------------------
+% x_i = bits que recibe el UE i en la trama (no acumulados), sobre los N UE
+jainTrama = zeros(nAlg, framesA);
+fig5 = figure('Color', 'w', 'Units', 'centimeters', 'Position', [2 2 8.4 5.5]);
+for a = 1:nAlg
+    s = infoA{a};
+    nUE = numel(s.d);
+    for f = 1:framesA
+        sel = s.alloc(f,:) > 0;
+        x = accumarray(s.alloc(f,sel)', s.bits(f,sel)', [nUE 1]);
+        jainTrama(a,f) = sum(x)^2/(nUE*sum(x.^2));
+    end
+    plot((1:framesA)*TTI*1e3, jainTrama(a,:), ['-' markers{a}], 'Color', colores(a,:), ...
+        'MarkerSize', 3, 'MarkerIndices', 1:10:framesA, 'LineWidth', 1); hold on;
+end
+xlabel('Tiempo (ms)');
+ylabel('Índice de Jain por trama');
+legend(algNames, 'Location', 'east', 'NumColumns', 1);
+xlim([0 framesA*TTI*1e3]);
+ylim([0 1.05]);
+grid on;
+estiloPaper(fig5);
+exportar(fig5, outDir, 'fig_equidad_tiempo');
+
+% -------------------------------------------------------------------------
 % Fig. 2: datos acumulados por UE en el tiempo (A), como Capozzi 2013
 % -------------------------------------------------------------------------
 fig2 = figure('Color', 'w', 'Units', 'centimeters', 'Position', [2 2 8.4 8]);
@@ -196,7 +223,7 @@ param = struct('seed', seed, 'N', N, 'r', r, 'freq', freq, 'Pout', Pout, ...
     'BW', BW, 'TTI', TTI, 'fi', fi, 'rdg', rdg, 'plm', plm, ...
     'framesA', framesA, 'framesB', framesB, 'Pkg', Pkg);
 save(fullfile(outDir, 'caracterizacion.mat'), 'param', 'algNames', ...
-    'metA', 'metB', 'infoA', 'infoB', 'delayBin', 'esperaBin', 'edges');
+    'metA', 'metB', 'infoA', 'infoB', 'delayBin', 'esperaBin', 'edges', 'jainTrama');
 
 % -------------------------------------------------------------------------
 function estiloPaper(fig)

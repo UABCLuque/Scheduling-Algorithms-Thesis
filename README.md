@@ -87,7 +87,7 @@ For each RB, the scheduler picks the user with the **highest SNR on that RB**: `
 
 ### 3.3 Blind Equal Throughput: `BET_FAST_function.m`
 Picks the user with the **lowest average throughput so far**, regardless of the channel:
-- `R_i(t) = a·R_i(t−1) + (1−a)·r_i`, where `r_i` is the user's accumulated bits and `a = 0.99999`.
+- `R_i(t) = a·R_i(t−1) + (1−a)·r_i(t)`, where `r_i(t)` is the instantaneous rate (the bits of the RB just assigned to user *i*, 0 for the other users) and `a = 0.99999`. With such a long window, `R_i` is in practice proportional to the bits the user has received so far.
 - Metric `m_i = 1 / R_i`, and the RB goes to `argmax m_i`. Ties (for example several users who have not been served yet, `R_i = 0 → m_i = ∞`) are broken at random.
 - **Expected behaviour:** high fairness, because it tries to equalise throughput across users. Throughput is the lowest, because users with a bad channel get as many bits as users with a good one and therefore need many more RBs.
 
@@ -178,25 +178,25 @@ Mean of 10 seeded runs (`rng(1)` … `rng(10)` before each call) for the **user-
 |---|---|---|---|---|---|---|
 | Throughput (Mbps) | RR | 6.49 | 6.22 | 5.83 | 5.34 | 4.84 |
 | | BCQI | 6.53 | 6.53 | 6.53 | 6.53 | 6.53 |
-| | BET | 6.49 | 6.20 | 5.67 | 5.07 | 4.47 |
+| | BET | 6.49 | 6.20 | 5.64 | 5.10 | 4.46 |
 | | PF | 6.52 | 6.48 | 6.36 | 6.17 | 6.00 |
 | Fairness | RR | 0.91 | 0.97 | 0.95 | 0.89 | 0.86 |
 | | BCQI | 0.45 | 0.30 | 0.22 | 0.17 | 0.15 |
-| | BET | 0.87 | 0.96 | 0.97 | 0.96 | 0.89 |
+| | BET | 0.87 | 0.98 | 1.00 | 0.99 | 0.98 |
 | | PF | 0.98 | 0.99 | 0.99 | 0.99 | 0.97 |
 | Outage (%) | RR | 3.4 | 0.5 | 7.0 | 31.6 | 47.7 |
 | | BCQI | 49.4 | 65.4 | 73.1 | 78.0 | 81.3 |
-| | BET | 4.8 | 20.7 | 40.9 | 55.7 | 64.1 |
+| | BET | 4.3 | 1.6 | 15.4 | 38.9 | 53.3 |
 | | PF | 0.2 | 2.4 | 16.0 | 33.3 | 45.2 |
 | Delay (ms) | RR | 42.5 | Inf | Inf | Inf | Inf |
 | | BCQI | 20.1 | 22.9 | 25.4 | 26.9 | 27.9 |
-| | BET | 41.2 | 48.9 | Inf | Inf | Inf |
+| | BET | 41.4 | Inf | Inf | Inf | Inf |
 | | PF | 42.9 | Inf | Inf | Inf | Inf |
 
 How to read them:
 - **BCQI** has the highest throughput, and it stays flat because every RB is used at the top CQI (there is always some user close enough to the gNB). Its fairness and outage are the worst, and it has the shortest delay because it finishes the strongest users first.
-- **PF** gives the best balance: within 1–8 % of BCQI's throughput, with the highest fairness (0.97–0.99). Its outage is the lowest at 50 users; at 100 users RR's is lower (0.5 % vs 2.4 %).
-- **RR and BET** lose throughput as users are added, because they keep serving users with a poor channel. Their fairness also falls once there are more users than RBs per frame (140 at 1.4 MHz).
+- **PF** gives the best balance: within 1–8 % of BCQI's throughput, with fairness of 0.97–0.99. Its outage is the lowest at 50 users; at 100 users RR's is lower (0.5 % vs 2.4 %).
+- **RR and BET** lose throughput as users are added, because they keep serving users with a poor channel. RR's fairness falls once there are more users than RBs per frame (140 at 1.4 MHz). BET keeps the highest fairness from 100 users on (0.98–1.00), but its outage still grows with the number of users.
 - **The 50-user point is a different regime.** A 5 kbit packet needs ≈ 11 RBs at CQI 15. With 50 users each one gets ≈ 14 RBs in 50 ms, so users finish and are replaced; with 100 or more users each gets ≤ 7 RBs and almost nobody finishes (hence `Inf` delay).
 - **More users** → more interference (`FN ∝ Qty_UE`) → lower SNR, so throughput drops for every scheduler except BCQI.
 - **More bandwidth** → more RBs per frame → throughput rises in proportion (≈ 14 Mbps at 3 MHz and 23 Mbps at 5 MHz for BCQI/PF).
@@ -215,7 +215,7 @@ The absolute values are now in the range of single-antenna LTE (3–5 bps/Hz), b
 5. **Time is recorded per frame.** Arrival and finish times are multiples of 10 ms, so the shortest possible delay is 10 ms. This is too coarse for URLLC and adds rounding noise to the per-user throughput in the fairness metric when packets are very small (e.g. 1 kbit finishes in ≈ 3 RBs).
 
 ### 7.2 Bugs that affect the plotted metrics
-1. **BET and PF reset every user's history whenever someone finishes.** On each arrival, `Ri = ones(Qty_UE,1)*mean(Ri)` (and, for BET, `BET_metric = ones*mean(...)`) overwrite all users' averages with the mean. Every completion erases the fairness memory, and the next decisions become random tie-breaks. With small packets (many completions) this visibly lowers BET's fairness (e.g. 0.72 at 1 kbit vs 0.86 for RR).
+1. **BET and PF reset every user's history whenever someone finishes.** On each arrival, `Ri = ones(Qty_UE,1)*mean(Ri)` (and, for BET, `BET_metric = ones*mean(...)`) overwrite all users' averages with the mean. Every completion erases the fairness memory, and the next decisions become random tie-breaks. With small packets (many completions) this visibly lowers BET's fairness (e.g. 0.73 at 1 kbit vs 0.86 for RR).
 2. **Average delay only includes users who finished.** Users still waiting are left out, and the result is `Inf` when nobody finished. A scheduler with a few late completions can therefore show a finite delay while another shows `Inf`. Delay should also count unfinished users, or be reported with the fraction of users that finished.
 3. **The "Round Robin warm-up" in PF_FAST is dead code.** It checks `numTTI == 0`, but `numTTI` has already been incremented to 1 before the RB loop. (It also checks for `-999`, while PF marks finished users with `999`.)
 4. **PF's average `R_i` has no forgetting window.** It is a 0.5-weighted average of the cumulative mean rate since arrival, so in practice it is the cumulative mean. Standard PF uses an exponential average over a window of many TTIs.
@@ -236,6 +236,7 @@ The absolute values are now in the range of single-antenna LTE (3–5 bps/Hz), b
 - **BET and PF delay was always 0**: `UE_tend` started at `zeros`, so unfinished initial users counted as 0 s. Now `Inf`, as in RR/BCQI.
 - **BET and PF overstated outage**: finished users were counted as receiving 0 bits. Now excluded, as in RR/BCQI (e.g. BET at 1 kbit: 47 % → 20 %).
 - **Fairness** was Jain's index over total bits, which penalised users that arrived late in the run (it produced a dip at 50 users). Now computed over per-user throughput; identical results with `buffer = 0`.
+- **BET's `r_i` was the user's accumulated bits** instead of the instantaneous rate, so `R_i` was a slow average of a running total (a double integration). Total throughput was equalised over the whole run, but the allocation came in growing bursts: with a full buffer (40 UEs, 5 MHz, 1 km), Jain's index per 10 ms frame drifted from 0.99 to ≈ 0.65. Now `r_i` is the bits of the RB just assigned. Per-frame fairness stays at 0.996–1.000, and in the §6 sweep BET's fairness rose (e.g. 0.96 → 0.98 at 100 users) and its outage dropped (20.7 % → 1.6 % at 100 users).
 
 ---
 

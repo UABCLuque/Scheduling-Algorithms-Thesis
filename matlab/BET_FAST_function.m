@@ -162,7 +162,12 @@ for k = 1:RBxFrame
         %ri(:,contRB) = sumData;
         %ri(:,contRB) = UE_tp;
         %ri(:,contRB) = BET_metric;
-        ri = BET_metric';
+        % ri era BET_metric (bits acumulados), lo que integraba dos veces y
+        % hacia el reparto por trama cada vez mas desigual. Ahora ri es la
+        % tasa instantanea: bits del ultimo RB asignado (0 para los demas UE)
+        %ri = BET_metric';
+        ri = zeros(Qty_UE,1);
+        ri(prevUE) = prevBits;
         %Ri(:,contRB) = a*Ri(:, contRB-1) + (1-a)*ri(:, contRB);
         %Ri(:,contRB) = a*Ri(:, contRB-1) + (1-a)*ri;
         Ri = a*Ri_old + (1-a)*ri;
@@ -226,6 +231,8 @@ for k = 1:RBxFrame
 
     sumData(active_UE) = sumData(active_UE) + data(active_UE,k);
     dataxTTI(active_UE) = dataxTTI(active_UE) + data(active_UE,k);
+    prevUE = active_UE;              % Para ri en el siguiente RB
+    prevBits = data(active_UE,k);
     BET_metric(active_UE) = BET_metric(active_UE) + data(active_UE,k);
     RB_UE(active_UE) = RB_UE(active_UE)+1;
 

@@ -39,7 +39,7 @@ Master's thesis: **"Evaluación de despachadores en redes celulares"**. It evalu
 | CQI → bits/RE | 3GPP CQI tables (cites TS 38.214) | `CQI.m`: LTE 4-bit table (TS 36.213), `bRE = CR*Qm`, no BW scaling | ⚠ code uses the LTE table; SNR→CQI thresholds need a source |
 | RR metric | m = t − T_i (eq. 1) | cyclic pointer in `RR_function.m` | equivalent in intent |
 | Max C/I metric | argmax r_i(t) (eq. 2) | `argmax SNR(:,k)` per RB | ⚠ code ranks SNR, not rate |
-| BET metric | no equation in draft | `1 ./ Ri`, `Ri = a*Ri_old + (1-a)*ri`, `a = 0.99999` | draft needs an equation |
+| BET metric | no equation in draft | `1 ./ Ri`, `Ri = a*Ri_old + (1-a)*ri`, `ri` = bits of the RB just assigned (instantaneous rate), `a = 0.99999` | draft needs an equation |
 | PF metric | argmax r_i(t)/R_i(t) (eq. 3) | `Cap ./ Ri`, `Cap = CQI(SNR)*84` (bits the RB would carry), β = `a = 0.5` | consistent |
 | Spectral eff. | Ef = C_d / B | `Ef = atp/BW` | consistent |
 | Jain fairness | (Σx_i)² / (n·Σx_i²) | `FT` over per-UE throughput `tp_UE = sumData ./ t_UE` (t_UE = time in the cell) | draft must state x_i = per-user throughput (needs a source); n includes late-arriving users |
@@ -73,7 +73,7 @@ Master's thesis: **"Evaluación de despachadores en redes celulares"**. It evalu
 - Run: in MATLAB, `cd matlab` and then `Scheduling`. Needs `fspl`/`physconst` (Phased Array System Toolbox).
 - **Figures are not exported.** `Scheduling.m` opens 7 figures (3 throughput-vs-fairness plots, metrics vs Qty_UE, outage vs Qty_UE, metrics vs BW, metrics vs Pkg) but saves nothing. Export location/format: [TODO].
 - Open issues that affect the plotted results (details in `README.md` §7): BET/PF reset `Ri` on every arrival; delay averages only finished UEs (`Inf` if none); times are recorded per 10 ms frame; SNRs are still optimistic (no shadowing, noise figure or real interference; ~83 % of RBs at CQI 15); `Pkg`/`frames` are placeholders.
-- Fixed in October 2026 (README §7.4): noise used 20·log10(BW); `CQI.m` scaled bits/RE by `mag2db(BW)`; CQI 15 threshold used `>`; PF numerator was Shannon capacity; BET/PF delay was always 0; BET/PF outage counted finished UEs; fairness was Jain over total bits.
+- Fixed in October 2026 (README §7.4): noise used 20·log10(BW); `CQI.m` scaled bits/RE by `mag2db(BW)`; CQI 15 threshold used `>`; PF numerator was Shannon capacity; BET/PF delay was always 0; BET/PF outage counted finished UEs; fairness was Jain over total bits; BET's `ri` was the accumulated bits instead of the instantaneous rate (per-frame fairness drifted down to ~0.65).
 
 ## Rules
 - Never invent references, citation keys, data or simulation results. If a claim needs a source, say so and leave `[CITA REQUERIDA]`.
