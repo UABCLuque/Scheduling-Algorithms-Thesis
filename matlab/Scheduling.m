@@ -5,8 +5,8 @@ clear all;
 
 % Parametros de simulacion
 r = 500;        % Radio de la celda en m (0.5 km, Capozzi 2013 [9])
-freq = 2.6e9;
-Pout = 43;      % Potencia de transmision del eNB en dBm (Capozzi 2013 [9])
+freq = 3.5e9;   % Banda n78 de 5G NR (FR1)
+Pout = 43;      % Potencia de transmision de la gNB en dBm (Capozzi 2013 [9])
 TTI = 10e-3;
 fi = 0.1;
 frames = 5;
@@ -18,7 +18,7 @@ plm = '38901_UMa_NLOS';
 
 % Parametros para los barridos
 Qty_UE_vec = [50, 100, 150, 200, 250];
-BW_values = [1.4e6, 3e6, 5e6];
+BW_values = [10e6, 20e6, 40e6];   % Anchos de banda de NR con 30 kHz (24, 51 y 106 RB por slot)
 %Pkg_values = [1e6, 5e6, 10e6];
 Pkg_values = [1e3, 2e3, 10e3];
 

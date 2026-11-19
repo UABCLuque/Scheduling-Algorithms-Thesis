@@ -3,18 +3,14 @@
 % 
 % Algoritmo de despacho Round Robin
 % 
-%   LTE frame structure
-%   - Un RB esta compuesto por 12 subcarriers de 15KHz c/u
-%   - Y 7 simbolos OFDM (Lo cual es un slot y tiene una duracion de 0.5ms)
-%   - 12 subcarriers * 7 simbolos OFDM = 84 resource elements en un RB
-%   - Un simbolo son los 12 subcarriers en 0.5ms/7 de tiempo
-%   - Un frame son 10ms en un ancho de banda determinado (1.4, 3, 5, 10, 15
-%   o 20MHz)
-%   - https://helpfiles.keysight.com/csg/89600B/Webhelp/Subsystems/lte/content/lte_overview.htm
-%
-%   5G NR frame structure
+%   Estructura de trama de 5G NR (3GPP TS 38.211), ver NR_parametros.m
+%   - Un RB esta compuesto por 12 subportadoras de 30 kHz c/u (mu = 1)
+%   - Un slot tiene 14 simbolos OFDM y dura 0.5 ms
+%   - 12 subportadoras * 14 simbolos OFDM = 168 RE en un RB
+%   - Una trama dura 10 ms (20 slots); el numero de RB por slot depende
+%     del ancho de banda (TS 38.101-1, tabla 5.3.2-1)
 %   - Ancho de banda variable del RB gracias al subcarrier spacing
-%   - Latencia dismuinuya en medida que aumenta el SCS
+%   - Latencia disminuye en medida que aumenta el SCS
 %   - https://www.3g4g.co.uk/5G/5Gtech_video0022_01.pdf
 %
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -54,8 +50,8 @@ end
 %d = [0.2858 0.7572 0.7537 0.3804 0.5678]; %Debug
 
 % Frecuencia a la que se realiza la comunicacion para el modelo de canal
-% https://es.wikipedia.org/wiki/Bandas_de_frecuencias_LTE
-%freq = 2.6e9;
+% (banda n78 de 5G NR, 3.5 GHz; se define en el script que llama a la funcion)
+%freq = 3.5e9;
 
 %Potencia de transmisión del UE al gNB en dBm
 %Pout = 0;
@@ -69,15 +65,11 @@ pot = Modelo_de_canal(freq, d, Pout, plm);   %calcular distancia
 %RXGn = 10; % Ganancia en dB del amplificador del UE en dB. No se usa
 
 Tn = -174;      % Ruido termico 174dB/Hz
-%BW = 3e6;      % 1.4, 3, 5, 10, 15 o 20MHz el BW del canal
-%TTI = 10e-3;    % Tiempo de un frame en LTE
-SC = 12;        % Numero de subcarriers
-SCS = 15e3;     %Subcarrier spacing de 15KHz en LTE (fijo)
-slot = 0.5e-3;  %Duracion de un slot
-
-%https://helpfiles.keysight.com/csg/89600B/Webhelp/Subsystems/lte/content/lte_overview.htm
-%https://www.rfwireless-world.com/calculators/LTE-Resource-Block-Calculator.html
-RBxFrame = (BW/1e6)*5*20; %20 slots en un frame de 10ms
+%BW = 10e6;      % Ancho de banda del canal (10 a 100 MHz en n78, ver NR_parametros.m)
+%TTI = 10e-3;    % Duracion de una trama en NR (10 ms)
+% Estructura de trama de 5G NR (ver NR_parametros.m): 30 kHz entre
+% subportadoras, slots de 0.5 ms con 14 simbolos y RB de 168 RE
+[RBxFrame, REperRB] = NR_parametros(BW, TTI);
 
 %Variable para indicar si es buffer finito(1), infinito (0) o dinamico (2)
 %o dinamico random (3)
@@ -193,7 +185,7 @@ for k = 1:RBxFrame
     bRE = CQI(SNR_UE, BW);
     contRB = contRB+1;
 
-    data(active_UE, k) = bRE*84; %El 84? 84 RE en un RB de LTE
+    data(active_UE, k) = bRE*REperRB; % 168 RE en un RB de NR
     FBits(numTTI, k) = data(active_UE(1), k); % Bits del RB asignado
     %disp(data)
 

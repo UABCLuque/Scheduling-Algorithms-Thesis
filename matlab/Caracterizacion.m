@@ -1,5 +1,9 @@
 % Caracterizacion de los despachadores (paper CITCA)
 %
+% Escenario de 5G NR en el enlace descendente: banda n78 (3.5 GHz),
+% 30 kHz entre subportadoras, canal de 10 MHz (24 RB por slot, 480 RB por
+% trama de 10 ms, ver NR_parametros.m) y modelo UMa NLOS de TR 38.901.
+%
 % Muestra el funcionamiento de cada despachador en un solo escenario, sin
 % barridos (los barridos de Scheduling.m se reservan para otro trabajo).
 %   Escenario A: buffer lleno. Throughput y equidad por UE segun la
@@ -17,10 +21,10 @@ clear;
 seed = 1;       % Semilla de rng (misma para cada despachador)
 N = 40;         % UE activos (40 UE como en la Fig. 11 de Capozzi 2013)
 r = 1000;       % Radio de la celda en m (ver nota en el resumen)
-freq = 2.6e9;
+freq = 3.5e9;   % Banda n78 de 5G NR (FR1)
 Pout = 43;      % Potencia de transmision de la gNB en dBm (Capozzi 2013)
-BW = 5e6;       % 5 MHz: menor ancho de banda de NR FR1
-TTI = 10e-3;
+BW = 10e6;      % 10 MHz: menor ancho de banda de n78 con 30 kHz (24 RB)
+TTI = 10e-3;    % Duracion de una trama de NR (10 ms)
 fi = 0.1;
 rdg = 2;        % Distancias equiespaciadas
 plm = '38901_UMa_NLOS';

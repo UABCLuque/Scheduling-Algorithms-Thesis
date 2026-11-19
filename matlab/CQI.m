@@ -2,7 +2,9 @@
 % CQI
 %
 % Funcion
-% Según Rel.12 y posterior. Tabla 7.2.3-1 en 3GPP TS 36.213 verison 14.2.0
+% Tabla CQI de 4 bits de 5G NR: tabla 5.2.2.1-2 de 3GPP TS 38.214
+% (modulacion maxima 64QAM). Sus valores de modulacion y tasa de codigo
+% son los mismos que los de la tabla 7.2.3-1 de 3GPP TS 36.213.
 %
 % https://lh3.googleusercontent.com/proxy/vp9EM7xTaAA1nGl467UtIUrCGaebEmFKQjkvtaVNBSaoGSJDCbSk7zNk8b3fkv-ZDLYGYTQMn8ESZxgCb1mIhxqTqzSwG0s
 %
