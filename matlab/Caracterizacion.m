@@ -13,9 +13,17 @@
 %                metodologia). Retardo segun la distancia y ubicacion de
 %                los UE que siguen en espera al final.
 % Las figuras (PDF vectorial + PNG) y los datos se guardan en results/citca/.
+%
+% Corrida larga: el tiempo simulado se fija con Tsim. Para acortar la
+% corrida solo se ejecuta lo que usa el paper: escenario A, Fig. 1
+% (fig_tp_distancia) y la tabla de metricas de A. El escenario B y las
+% Figs. 2 a 5 quedan comentados. Los archivos de salida llevan el tiempo
+% simulado en el nombre (p. ej. metricas_600s.csv) para no sobrescribir los
+% de 1 s.
 clc;
 close all;
 clear;
+tTotal = tic;   % Tiempo de todo el script (con handle: RR_function usa tic/toc sin handle)
 
 % Parametros comunes
 seed = 1;       % Semilla de rng (misma para cada despachador)
@@ -29,11 +37,17 @@ fi = 0.1;
 rdg = 2;        % Distancias equiespaciadas
 plm = '38901_UMa_NLOS';
 
+% Tiempo simulado en s (1 s = 100 tramas; 600 s = 10 min = 60,000 tramas)
+Tsim = 60;
+
 % Escenario A: buffer lleno
-framesA = 100;  % 1 s
+framesA = round(Tsim/TTI);
 % Escenario B: paquetes con tamano ~N(Pkg, 0.2 Pkg), UE terminados se reemplazan
-framesB = 100;  % 1 s
+% (desactivado para acortar la corrida)
+%framesB = 100;  % 1 s
 Pkg = 50e3;     % Valor ilustrativo, no corresponde a una clase de servicio
+                % (en A no se usa, pero la funcion lo pide como argumento)
+sufijo = sprintf('_%gs', Tsim);   % Sufijo de los archivos de salida
 
 algNames = {'RR', 'BCQI', 'BET', 'PF'};
 algoCalls = {@RR_function, @BCQI_function, @BET_FAST_function, @PF_FAST_function};
@@ -50,17 +64,25 @@ end
 % Simulaciones
 % -------------------------------------------------------------------------
 metA = zeros(nAlg, 5);  % [atp FT Ef delay outt]
-metB = zeros(nAlg, 5);
+%metB = zeros(nAlg, 5);
 infoA = cell(1, nAlg);
-infoB = cell(1, nAlg);
+%infoB = cell(1, nAlg);
+tAlg = zeros(nAlg, 1);  % Tiempo de ejecucion de cada despachador (s)
+fprintf('Tiempo simulado: %g s (%d tramas)\n', Tsim, framesA);
 for a = 1:nAlg
+    tA = tic;
     rng(seed);
     [metA(a,1), metA(a,2), metA(a,3), metA(a,4), metA(a,5), infoA{a}] = ...
         algoCalls{a}(N, r, freq, Pout, BW, TTI, 0, Pkg, fi, framesA, rdg, plm);
-    rng(seed);
-    [metB(a,1), metB(a,2), metB(a,3), metB(a,4), metB(a,5), infoB{a}] = ...
-        algoCalls{a}(N, r, freq, Pout, BW, TTI, 3, Pkg, fi, framesB, rdg, plm);
-    fprintf('%s listo\n', algNames{a});
+    % alloc y bits (trama x RB) solo los usan las Figs. 2 y 5 (desactivadas).
+    % Se descartan para no guardar ~460 MB por despachador en 600 s
+    infoA{a} = rmfield(infoA{a}, {'alloc', 'bits'});
+    % Escenario B desactivado para acortar la corrida
+    %rng(seed);
+    %[metB(a,1), metB(a,2), metB(a,3), metB(a,4), metB(a,5), infoB{a}] = ...
+    %    algoCalls{a}(N, r, freq, Pout, BW, TTI, 3, Pkg, fi, framesB, rdg, plm);
+    tAlg(a) = toc(tA);
+    fprintf('%s listo (%d/%d) en %.1f s\n', algNames{a}, a, nAlg, tAlg(a));
 end
 
 % -------------------------------------------------------------------------
@@ -78,8 +100,11 @@ ylabel('Throughput por UE (kbps)');
 legend(algNames, 'Location', 'northeast', 'NumColumns', 2);
 grid on;
 estiloPaper(fig1);
-exportar(fig1, outDir, 'fig_tp_distancia');
+exportar(fig1, outDir, ['fig_tp_distancia' sufijo]);
 
+% Figs. 4, 5, 2 y 3 desactivadas para acortar la corrida (las Figs. 2 y 5
+% necesitan info.alloc e info.bits, y la Fig. 3 el escenario B)
+%{
 % -------------------------------------------------------------------------
 % Fig. 4: equidad, throughput por UE normalizado a la media (A)
 % -------------------------------------------------------------------------
@@ -212,22 +237,32 @@ xlim([0 r]);
 grid on;
 estiloPaper(fig3);
 exportar(fig3, outDir, 'fig_retardo_distancia');
+%}
 
 % -------------------------------------------------------------------------
 % Metricas de cada escenario y datos para reproducir las figuras
 % -------------------------------------------------------------------------
-T = table(algNames', metA(:,1)/1e6, metA(:,3), metA(:,2), ...
-    metB(:,1)/1e6, metB(:,2), 1e3*metB(:,4), metB(:,5), ...
+% Solo escenario A (columnas de B desactivadas para acortar la corrida)
+%T = table(algNames', metA(:,1)/1e6, metA(:,3), metA(:,2), ...
+%    metB(:,1)/1e6, metB(:,2), 1e3*metB(:,4), metB(:,5), ...
+%    'VariableNames', {'Despachador', 'A_Throughput_Mbps', 'A_Ef_bpsHz', 'A_Jain', ...
+%    'B_Throughput_Mbps', 'B_Jain', 'B_Retardo_ms', 'B_Outage_pct'});
+T = table(algNames', metA(:,1)/1e6, metA(:,3), metA(:,2), tAlg, ...
     'VariableNames', {'Despachador', 'A_Throughput_Mbps', 'A_Ef_bpsHz', 'A_Jain', ...
-    'B_Throughput_Mbps', 'B_Jain', 'B_Retardo_ms', 'B_Outage_pct'});
+    'Tiempo_s'});
 disp(T);
-writetable(T, fullfile(outDir, 'metricas.csv'));
+writetable(T, fullfile(outDir, ['metricas' sufijo '.csv']));
+
+tiempoTotal = toc(tTotal);
+fprintf('Tiempo total: %.1f s\n', tiempoTotal);
 
 param = struct('seed', seed, 'N', N, 'r', r, 'freq', freq, 'Pout', Pout, ...
     'BW', BW, 'TTI', TTI, 'fi', fi, 'rdg', rdg, 'plm', plm, ...
-    'framesA', framesA, 'framesB', framesB, 'Pkg', Pkg);
-save(fullfile(outDir, 'caracterizacion.mat'), 'param', 'algNames', ...
-    'metA', 'metB', 'infoA', 'infoB', 'delayBin', 'esperaBin', 'edges', 'jainTrama');
+    'Tsim', Tsim, 'framesA', framesA, 'Pkg', Pkg);
+%save(fullfile(outDir, 'caracterizacion.mat'), 'param', 'algNames', ...
+%    'metA', 'metB', 'infoA', 'infoB', 'delayBin', 'esperaBin', 'edges', 'jainTrama');
+save(fullfile(outDir, ['caracterizacion' sufijo '.mat']), 'param', 'algNames', ...
+    'metA', 'infoA', 'tAlg', 'tiempoTotal');
 
 % -------------------------------------------------------------------------
 function estiloPaper(fig)

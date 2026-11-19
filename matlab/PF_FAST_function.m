@@ -114,8 +114,9 @@ Active_QtyUE = Qty_UE;
 numTTI = 0;
 tp = 0;
 FN = Qty_UE * fi;
-a = 0.5; %Valor de beta
+%a = 0.5; %Valor de beta
 %a = 0.1; %Valor de beta
+beta = 0.99999; % Factor de olvido del promedio, ventana T_f = 1/(1-beta) en RB
 
 for st = 1:Qty_UE
     C(st) = {sprintf('UE %d',st)};
@@ -181,9 +182,20 @@ for k = 1:RBxFrame
         Ri(:, contRB) = dataRate;
     else
         %ri(:,contRB) = dataRate;   %data rate
-        ri = dataRate;   %data rate
+        %ri = dataRate;   %data rate
         %Ri(:,contRB) = a*Ri(:, contRB-1) + (1-a)*ri(:, contRB);
-        Ri = a*Ri_old + (1-a)*ri;
+        %Ri = a*Ri_old + (1-a)*ri;
+        % ri era dataRate (bits acumulados / tiempo transcurrido), que ya es
+        % un promedio desde el inicio: se promediaba un promedio y beta casi
+        % no tenia efecto. Ahora, igual que en BET:
+        %   r_i  = bits que recibio el UE i en el ultimo RB asignado (0 si
+        %          el RB fue para otro UE)
+        %   R_i  = throughput promedio pasado, media movil exponencial
+        %          R_i(t) = beta*R_i(t-1) + (1-beta)*r_i(t)
+        % La actualizacion se hace en cada RB, no en cada TTI
+        ri = zeros(Qty_UE,1);
+        ri(prevUE) = prevBits;
+        Ri = beta*Ri_old + (1-beta)*ri;
     end
 
     %disp("Tasa de datos promedio Ri(t)")
@@ -244,6 +256,8 @@ for k = 1:RBxFrame
 
     sumData(active_UE) = sumData(active_UE) + data(active_UE,k);
     dataxTTI(active_UE) = dataxTTI(active_UE) + data(active_UE,k);
+    prevUE = active_UE;              % Para ri en el siguiente RB
+    prevBits = data(active_UE,k);
     RB_UE(active_UE) = RB_UE(active_UE)+1;
 
     %Calculo del datarate para cada UE
